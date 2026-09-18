@@ -38,15 +38,27 @@ test.describe('qauto.forstudy.space', () => {
         },
     );
 
-    test('Welcome page to garage page and log out', async ({ page }) => {
-        const password = 'Test1234';
-        const email = `mrcross622+${Date.now()}@gmail.com`;
+    test(
+        'Welcome page to garage page and log out',
+        {
+            tag: ['@garagePage'],
+        },
+        async ({ page }) => {
+            const password = 'Test1234';
+            const email = `mrcross622+${Date.now()}@gmail.com`;
 
-        await welcomePage.clickLoginButton();
-        await welcomePage.loginForm.clickRegister();
-        const garagePage = await welcomePage.registerForm.register('Test', 'Test', email, password);
-        await garagePage.verifyIsOpened();
-        await garagePage.leftNavMenu.goto('Log Out');
-        await welcomePage.verifyIsOpened();
-    });
+            await welcomePage.clickLoginButton();
+            await welcomePage.loginForm.clickRegister();
+            await page.pause();
+            const garagePage = await welcomePage.registerForm.register(
+                'Test',
+                'Test',
+                email,
+                password,
+            );
+            await garagePage.verifyIsOpened();
+            await garagePage.leftNavMenu.goto('Log Out');
+            await welcomePage.verifyIsOpened();
+        },
+    );
 });
