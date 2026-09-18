@@ -7,9 +7,11 @@ import { defineConfig, devices } from '@playwright/test';
  */
 import dotenv from 'dotenv';
 
-dotenv.config({
-    path: `.env.${process.env.ENV ?? 'local'}`,
-});
+if (!process.env.CI) {
+    dotenv.config({
+        path: `.env.${process.env.ENV ?? 'local'}`,
+    });
+}
 
 /**
  * @see https://playwright.dev/docs/test-configuration
