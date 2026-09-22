@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 import { WelcomePage } from '../support/pages/WelcomePage';
 
-test.describe('qauto.forstudy.space', () => {
+test.describe('qauto.forstudy.space @Sa7295d47', () => {
     /**
      * @type {WelcomePage}
      */
@@ -14,7 +14,7 @@ test.describe('qauto.forstudy.space', () => {
     });
 
     test(
-        'Welcome page and login form verifies',
+        'Welcome page and login form verifies @T30a1acc4',
         {
             annotation: {
                 type: 'testcase',
@@ -39,7 +39,7 @@ test.describe('qauto.forstudy.space', () => {
     );
 
     test(
-        'Welcome page to garage page and log out',
+        'Welcome page to garage page and log out @T82f6b743',
         {
             tag: ['@garagePage'],
         },
