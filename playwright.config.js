@@ -34,16 +34,10 @@ export default defineConfig({
                 apiKey: process.env.TESTOMATIO,
             },
         ],
+        ['html'],
     ],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
-        baseURL: 'https://qauto.forstudy.space/',
-
-        httpCredentials: {
-            username: process.env.HTTP_USERNAME ?? '',
-            password: process.env.HTTP_PASSWORD ?? '',
-        },
-
         trace: 'on',
     },
 

@@ -1,18 +1,8 @@
 // @ts-check
-import { test, expect } from '@playwright/test';
+import { test } from '../support/fixtures/welcomePageFixture';
 import { WelcomePage } from '../support/pages/WelcomePage';
 
 test.describe('qauto.forstudy.space @Sfc3ff540', () => {
-    /**
-     * @type {WelcomePage}
-     */
-    let welcomePage;
-
-    test.beforeEach('Page initialization', async ({ page }) => {
-        welcomePage = new WelcomePage(page);
-        await welcomePage.visit();
-    });
-
     test(
         'Welcome page and login form verifies @Td2090560',
         {
@@ -22,7 +12,7 @@ test.describe('qauto.forstudy.space @Sfc3ff540', () => {
             },
             tag: ['@welcomePage', '@loginForm'],
         },
-        async ({ page }) => {
+        async ({ welcomePage }) => {
             const password = 'Test1234';
             const email = `mrcross622+${Date.now()}@gmail.com`;
 
@@ -38,7 +28,7 @@ test.describe('qauto.forstudy.space @Sfc3ff540', () => {
         },
     );
 
-    test('Welcome page to garage page and log out @T554b63cb', async ({ page }) => {
+    test('Welcome page to garage page and log out @T554b63cb', async ({ welcomePage }) => {
         const password = 'Test1234';
         const email = `mrcross622+${Date.now()}@gmail.com`;
 
