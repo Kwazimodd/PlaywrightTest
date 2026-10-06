@@ -23,7 +23,7 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test --wrokers=4
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v7.0.1
       if: always()
       with:
         name: playwright-report
