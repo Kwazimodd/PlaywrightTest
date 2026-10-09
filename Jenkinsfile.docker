@@ -1,20 +1,15 @@
-// =====================================================================
-// Playwright — запуск внутри официального Docker-образа
-// Script Path: Jenkinsfile.docker
-//
-// Jenkins стоит на Windows, а контейнеры Linux, поэтому `agent { docker {...} }`
-// здесь не работает. Вместо этого запускаем `docker run` руками:
-//   - workspace монтируется в контейнер как /e2e
-//   - node_modules — отдельный анонимный volume, чтобы Linux-зависимости
-//     не смешивались с Windows-файлами в workspace
-// Требование: запущен Docker Desktop.
-// =====================================================================
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'mcr.microsoft.com/playwright:v1.63.0-noble'
+            args '--ipc=host'
+            label 'linux'
+        }
+    }
 
     parameters {
-        string(name: 'GREP', defaultValue: '', description: 'Фильтр тестов по имени (-g). Пусто = все тесты')
-        string(name: 'WORKERS', defaultValue: '2', description: 'Количество воркеров Playwright')
+        string(name: 'GREP', defaultValue: '', description: 'Фільтр тестів за іменем')
+        string(name: 'WORKERS', defaultValue: '2', description: 'Кількість воркерів')
     }
 
     options {
@@ -24,40 +19,25 @@ pipeline {
     }
 
     environment {
-        // тег образа = версия @playwright/test из package.json (браузеры уже внутри)
-        PW_IMAGE = 'mcr.microsoft.com/playwright:v1.63.0-noble'
+        CI = 'true'
+        PLAYWRIGHT_HTML_OPEN = 'never'
+        PLAYWRIGHT_JUNIT_OUTPUT_NAME = 'results/junit.xml'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Install') {
             steps {
-                checkout scm
+                sh 'npm ci'
             }
         }
 
-        stage('Pull image') {
-            steps {
-                bat 'docker version'
-                bat "docker pull ${env.PW_IMAGE}"
-            }
-        }
-
-        stage('Run Playwright in Docker') {
+        stage('Run Playwright') {
             steps {
                 script {
                     def grep = params.GREP?.trim() ? "-g '${params.GREP.trim()}'" : ''
-                    // --ipc=host рекомендуют для Chromium, иначе он может падать по памяти
-                    bat """
-                        docker run --rm --ipc=host ^
-                          -v "%WORKSPACE%:/e2e" ^
-                          -v /e2e/node_modules ^
-                          -w /e2e ^
-                          -e CI=true ^
-                          -e PLAYWRIGHT_HTML_OPEN=never ^
-                          -e PLAYWRIGHT_JUNIT_OUTPUT_NAME=results/junit.xml ^
-                          ${env.PW_IMAGE} ^
-                          bash -c "npm ci && npx playwright test --workers=${params.WORKERS} --reporter=line,html,junit ${grep}"
-                    """
+                    withCredentials([usernamePassword(credentialsId: 'qauto-http', usernameVariable: 'HTTP_USERNAME', passwordVariable: 'HTTP_PASSWORD')]) {
+                        sh "npx playwright test --workers=${params.WORKERS} --reporter=line,html,junit ${grep}"
+                    }
                 }
             }
         }

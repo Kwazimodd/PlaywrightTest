@@ -1,15 +1,3 @@
-// =====================================================================
-// Playwright — параллельный запуск шардами через declarative `matrix`
-// Script Path: Jenkinsfile.parallel
-//
-// Схема:
-//   1) каждый шард (--shard=N/3) запускается параллельно и пишет blob-отчёт
-//   2) все blob-отчёты сливаются в один HTML-отчёт (merge-reports)
-//
-// Шарды работают в одном workspace одновременно, поэтому у каждого свои
-// папки blob-report/shard-N и test-results/shard-N — Playwright чистит
-// эти папки в начале запуска и иначе шарды стёрли бы результаты друг друга.
-// =====================================================================
 pipeline {
     agent any
 
@@ -37,7 +25,6 @@ pipeline {
             steps {
                 bat 'npm ci'
                 bat 'npx playwright install chromium'
-                // чистим результаты прошлых билдов
                 dir('blob-report') { deleteDir() }
                 dir('all-blob-reports') { deleteDir() }
                 dir('playwright-report') { deleteDir() }
@@ -56,11 +43,11 @@ pipeline {
                 stages {
                     stage('Shard') {
                         steps {
-                            // catchError: упавший шард помечает билд красным,
-                            // но остальные шарды и слияние отчётов всё равно выполняются
                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                withEnv(["PLAYWRIGHT_BLOB_OUTPUT_DIR=blob-report/shard-${env.SHARD}"]) {
-                                    bat "npx playwright test --shard=${env.SHARD}/${env.TOTAL_SHARDS} --reporter=blob --output=test-results/shard-${env.SHARD}"
+                                withCredentials([usernamePassword(credentialsId: 'qauto-http', usernameVariable: 'HTTP_USERNAME', passwordVariable: 'HTTP_PASSWORD')]) {
+                                    withEnv(["PLAYWRIGHT_BLOB_OUTPUT_DIR=blob-report/shard-${env.SHARD}"]) {
+                                        bat "npx playwright test --shard=${env.SHARD}/${env.TOTAL_SHARDS} --reporter=blob --output=test-results/shard-${env.SHARD}"
+                                    }
                                 }
                             }
                         }
@@ -71,7 +58,6 @@ pipeline {
 
         stage('Merge reports') {
             steps {
-                // собираем report-1.zip, report-2.zip, report-3.zip в одну папку
                 bat '''
                     mkdir all-blob-reports
                     for /r blob-report %%f in (*.zip) do copy /y "%%f" all-blob-reports\\
