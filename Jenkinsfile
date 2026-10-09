@@ -1,9 +1,12 @@
 pipeline {
-    agent any
+    agent {
+        label: 'windows'
+    }
+
 
     parameters {
         string(name: 'GREP', defaultValue: '', description: 'Фільтр тестів за іменем')
-        string(name: 'WORKERS', defaultValue: '2', description: 'Количество воркеров Playwright')
+        string(name: 'WORKERS', defaultValue: '2', description: 'Кількість паралельних воркерів для виконання тестів')
     }
 
     options {
