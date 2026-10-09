@@ -1,0 +1,99 @@
+// =====================================================================
+// Playwright — параллельный запуск шардами через declarative `matrix`
+// Script Path: Jenkinsfile.parallel
+//
+// Схема:
+//   1) каждый шард (--shard=N/3) запускается параллельно и пишет blob-отчёт
+//   2) все blob-отчёты сливаются в один HTML-отчёт (merge-reports)
+//
+// Шарды работают в одном workspace одновременно, поэтому у каждого свои
+// папки blob-report/shard-N и test-results/shard-N — Playwright чистит
+// эти папки в начале запуска и иначе шарды стёрли бы результаты друг друга.
+// =====================================================================
+pipeline {
+    agent any
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        CI = 'true'
+        TOTAL_SHARDS = '3'
+        PLAYWRIGHT_HTML_OPEN = 'never'
+        PLAYWRIGHT_JUNIT_OUTPUT_NAME = 'results/junit.xml'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install') {
+            steps {
+                bat 'npm ci'
+                bat 'npx playwright install chromium'
+                // чистим результаты прошлых билдов
+                dir('blob-report') { deleteDir() }
+                dir('all-blob-reports') { deleteDir() }
+                dir('playwright-report') { deleteDir() }
+                dir('results') { deleteDir() }
+            }
+        }
+
+        stage('Playwright shards') {
+            matrix {
+                axes {
+                    axis {
+                        name 'SHARD'
+                        values '1', '2', '3'
+                    }
+                }
+                stages {
+                    stage('Shard') {
+                        steps {
+                            // catchError: упавший шард помечает билд красным,
+                            // но остальные шарды и слияние отчётов всё равно выполняются
+                            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                withEnv(["PLAYWRIGHT_BLOB_OUTPUT_DIR=blob-report/shard-${env.SHARD}"]) {
+                                    bat "npx playwright test --shard=${env.SHARD}/${env.TOTAL_SHARDS} --reporter=blob --output=test-results/shard-${env.SHARD}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Merge reports') {
+            steps {
+                // собираем report-1.zip, report-2.zip, report-3.zip в одну папку
+                bat '''
+                    mkdir all-blob-reports
+                    for /r blob-report %%f in (*.zip) do copy /y "%%f" all-blob-reports\\
+                '''
+                bat 'npx playwright merge-reports --reporter=html,junit all-blob-reports'
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: 'results/junit.xml', allowEmptyResults: true
+            publishHTML(target: [
+                reportName           : 'Playwright Report (merged)',
+                reportDir            : 'playwright-report',
+                reportFiles          : 'index.html',
+                keepAll              : true,
+                alwaysLinkToLastBuild: true,
+                allowMissing         : true
+            ])
+            archiveArtifacts artifacts: 'playwright-report/**, all-blob-reports/**, test-results/**',
+                             allowEmptyArchive: true
+        }
+    }
+}
